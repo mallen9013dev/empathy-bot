@@ -23,7 +23,8 @@ const register = async (req, res) => {
   const { email, password } = req.body
 
   const result = await authService.register(email, password)
-  if (!result.success) return res.status(500).send(registerResult)
+  if (result.userAlreadyExists) return res.status(409).send(result)
+  else if (!result.success) return res.status(500).send(result)
 
   return res.status(200).send(result)
 }

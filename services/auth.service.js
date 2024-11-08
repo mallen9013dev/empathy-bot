@@ -8,10 +8,18 @@ const emailService = require("../services/email.service")
 const login = async (email, password) => {
   try {
     const user = await User.findOne({ where: { email }, attributes: ["id", "password"] })
-    if (!user) throw new Error("Invalid username or password")
+    if (!user)
+      return {
+        success: false,
+        message: "Invalid username or password"
+      }
 
     const passwordHashMatch = await bcrypt.compare(password, user.password)
-    if (!passwordHashMatch) throw new Error("Invalid username or password")
+    if (!passwordHashMatch)
+      return {
+        success: false,
+        message: "Invalid username or password"
+      }
 
     const tokenPayload = {
       userId: user.id
@@ -43,7 +51,12 @@ const register = async (email, password) => {
       where: { email },
       defaults: { password: hash }
     })
-    if (!created) throw new Error("User already exists.")
+    if (!created)
+      return {
+        success: false,
+        userAlreadyExists: true,
+        message: "User already exists."
+      }
 
     emailService.sendWelcomeEmail(user.email)
 
@@ -70,10 +83,18 @@ const register = async (email, password) => {
  */
 const refreshAccessToken = async (token) => {
   try {
-    if (!token) throw new Error("Invalid refresh token")
+    if (!token)
+      return {
+        success: false,
+        message: "Invalid refresh token"
+      }
 
     const user = await User.findOne({ where: { refreshToken: token }, attributes: ["id", "refreshToken"] })
-    if (!user || token !== user.refreshToken) throw new Error("Invalid refresh token")
+    if (!user || token !== user.refreshToken)
+      return {
+        success: false,
+        message: "Invalid refresh token"
+      }
 
     const payload = {
       userId: user.id,
