@@ -8,7 +8,7 @@ const { AiTextCompletion } = require("../database/models/aiCompletions.model")
 const generateAiResponse = async (prompt, userId) => {
   try {
     const systemMessages = aiConstants.SYSTEM_MESSAGES
-    const history = await _summarizeRecentHistory(userId)
+    const history = await _getRecentHistory(userId)
 
     let completion, response
 
@@ -57,8 +57,12 @@ const generateAiResponse = async (prompt, userId) => {
   }
 }
 
-const _summarizeRecentHistory = async (userId) => {
-  const completions = await AiTextCompletion.findAll({ where: { userId }, limit: 20 })
+const _getRecentHistory = async (userId) => {
+  const completions = await AiTextCompletion.findAll({
+    where: { userId },
+    limit: 10,
+    order: [["createdAt", "ASC"]]
+  })
 
   const history = completions.reduce((acc, completion) => {
     if (completion.prompt != null) acc.push({ role: "user", content: completion.prompt })
@@ -66,15 +70,7 @@ const _summarizeRecentHistory = async (userId) => {
     return acc
   }, [])
 
-  const response = await aiClient.generateAiResponse("Summarize the conversation so far.", history)
-  summary = response.choices[0].message.content
-
-  return [
-    {
-      role: "assistant",
-      content: summary
-    }
-  ]
+  return history
 }
 
 module.exports = {

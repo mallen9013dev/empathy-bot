@@ -50,29 +50,6 @@ const AiTextCompletion = database.define(
   }
 )
 
-const AiTextCompletionSummary = database.define(
-  "aiTextCompletionSummaries",
-  {
-    userId: {
-      type: DataTypes.INTEGER,
-      required: true
-    },
-    summary: {
-      type: DataTypes.STRING(5000),
-      allowNull: false
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    }
-  },
-  {
-    underscored: true,
-    updatedAt: false
-  }
-)
-
 module.exports = {
   AiTextCompletion
 }

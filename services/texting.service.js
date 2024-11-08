@@ -123,7 +123,7 @@ const optOut = async (phoneNumber) => {
 }
 
 /**
- * Sends a message after ensuring to ph# is opted in, from ph# 10DLC verified. Finds or creates a conversation based on the to ph# for non-bulk messages or bulk messages when a conversation is already active.
+ * Sends a message after ensuring to ph# is opted in.
  */
 const sendText = async ({ to, from, body, userId }) => {
   try {
@@ -198,8 +198,9 @@ const _handleNonSystemReply = async (message, userId) => {
   await TextMessage.create(textPayload)
 
   const aiResponse = await aiService.generateAiResponse(message.Body, userId)
-  const replyMsg = aiResponse.aiCompletion.response
+  if (!aiResponse.success) return
 
+  const replyMsg = aiResponse.aiCompletion.response
   sendText({ to: message.From, from: message.To, body: replyMsg, userId })
 
   return replyMsg

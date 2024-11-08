@@ -7,13 +7,13 @@ const generateAiResponse = async (prompt, history = [], systemMessages = []) => 
   const client = new OpenAI({ apiKey: process.env.AI_API_KEY })
 
   const completionDetails = {
-    model: process.env.AI_MODEL,
+    model: "gpt-4o-mini",
     messages: [...systemMessages, ...history, { role: "user", content: prompt }],
-    temperature: 1,
-    max_tokens: 500,
-    top_p: 1,
-    frequency_penalty: 0,
-    presence_penalty: 0,
+    // max_tokens: 500,
+    // temperature: 1,
+    // top_p: 1,
+    // frequency_penalty: 0,
+    // presence_penalty: 0,
     response_format: {
       type: "text"
     }
