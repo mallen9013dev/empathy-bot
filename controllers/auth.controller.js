@@ -1,18 +1,19 @@
 const authService = require("../services/auth.service")
 
-const login = async (req, res) => {
-  const { email, password } = req.body
-  const result = await authService.login(email, password)
+const refreshAccessToken = async (req, res) => {
+  const { refreshToken } = req.cookies
+  const result = await authService.refreshAccessToken(refreshToken)
 
   if (result.success) {
     const cookieSettings = {
       httpOnly: true,
-      secure: true,
+      secure: process.env.SECURE_COOKIES === "true" ? true : false,
       maxAge: 30 * 24 * 60 * 60 * 1000
     }
     const response = {
       success: result.success,
       message: result.message,
+      user: result.user,
       accessToken: result.accessToken
     }
     res.cookie("refreshToken", result.refreshToken, cookieSettings).status(200).send(response)
@@ -29,36 +30,37 @@ const register = async (req, res) => {
   return res.status(200).send(result)
 }
 
-const refreshAccessToken = async (req, res) => {
-  const { refreshToken } = req.cookies
-  const result = await authService.refreshAccessToken(refreshToken)
+const signIn = async (req, res) => {
+  const { email, password } = req.body
+  const result = await authService.signIn(email, password)
 
   if (result.success) {
     const cookieSettings = {
       httpOnly: true,
-      secure: process.env.SECURE_COOKIES === "true" ? true : false,
+      secure: true,
       maxAge: 30 * 24 * 60 * 60 * 1000
     }
     const response = {
       success: result.success,
       message: result.message,
+      user: result.user,
       accessToken: result.accessToken
     }
     res.cookie("refreshToken", result.refreshToken, cookieSettings).status(200).send(response)
-  } else res.status(401).send(result)
+  } else res.status(result.statusCode).send(result)
 }
 
 const signOut = async (req, res) => {
-  const { userId } = req.body
-  const result = await authService.signOut(userId)
+  const { id } = req.user
+  const result = await authService.signOut(id)
 
   if (result.success) res.status(200).send(result)
   else res.status(500).send(result)
 }
 
 module.exports = {
-  login,
-  register,
   refreshAccessToken,
+  register,
+  signIn,
   signOut
 }

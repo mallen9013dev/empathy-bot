@@ -20,7 +20,7 @@ const User = database.define(
       allowNull: false
     },
     refreshToken: {
-      type: DataTypes.STRING
+      type: DataTypes.TEXT
     },
     createdAt: {
       type: DataTypes.DATE,

@@ -2,41 +2,42 @@ const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
 const { User } = require("../database/models/users.model")
 const emailService = require("../services/email.service")
+
 /**
- * Finds a user and compares the hashed pw, then returns auth and refresh tokens.
+ * Compares to stored token to make sure not revoked, then returns new access and refresh tokens.
  */
-const login = async (email, password) => {
+const refreshAccessToken = async (token) => {
   try {
-    const user = await User.findOne({ where: { email }, attributes: ["id", "password"] })
-    if (!user)
+    if (!token)
       return {
         success: false,
-        message: "Invalid username or password"
+        message: "Invalid refresh token"
       }
 
-    const passwordHashMatch = await bcrypt.compare(password, user.password)
-    if (!passwordHashMatch)
+    const user = await User.findOne({ where: { refreshToken: token } })
+    if (!user || token !== user.refreshToken)
       return {
         success: false,
-        message: "Invalid username or password"
+        message: "Invalid refresh token"
       }
 
-    const tokenPayload = {
-      userId: user.id
-    }
-    const { accessToken, refreshToken } = await _generateTokens(tokenPayload)
+    delete user.dataValues.password
+    delete user.dataValues.refreshToken
+
+    const tokenPayload = { user: user.dataValues }
+    const { accessToken, refreshToken } = await _generateTokens(tokenPayload, user.id)
 
     return {
       success: true,
-      message: "Login successful.",
+      message: "Successfully refreshed access token",
       accessToken,
       refreshToken
     }
   } catch (err) {
-    console.log("Error logging in: ", err)
+    console.log("Error refreshing access token.", err)
     return {
       success: false,
-      message: err?.message || "Error logging in."
+      message: err?.message || "Error refreshing access token."
     }
   }
 }
@@ -79,40 +80,45 @@ const register = async (email, password) => {
 }
 
 /**
- * Compares to stored token to make sure not revoked, then returns new access and refresh tokens.
+ * Finds a user and compares the hashed pw, then returns auth and refresh tokens.
  */
-const refreshAccessToken = async (token) => {
+const signIn = async (email, password) => {
   try {
-    if (!token)
+    const user = await User.findOne({ where: { email } })
+    if (!user)
       return {
         success: false,
-        message: "Invalid refresh token"
+        statusCode: 401,
+        message: "Invalid username or password"
       }
 
-    const user = await User.findOne({ where: { refreshToken: token }, attributes: ["id", "refreshToken"] })
-    if (!user || token !== user.refreshToken)
+    const passwordHashMatch = await bcrypt.compare(password, user.password)
+    if (!passwordHashMatch)
       return {
         success: false,
-        message: "Invalid refresh token"
+        statusCode: 401,
+        message: "Invalid username or password"
       }
 
-    const payload = {
-      userId: user.id,
-      accountId: user.accountId
-    }
-    const { accessToken, refreshToken } = await _generateTokens(payload)
+    delete user.dataValues.password
+    delete user.dataValues.refreshToken
+
+    const tokenPayload = { user: user.dataValues }
+    const { accessToken, refreshToken } = await _generateTokens(tokenPayload, user.id)
 
     return {
       success: true,
-      message: "Successfully refreshed access token",
+      message: "Sign-in successful.",
+      user: user.dataValues,
       accessToken,
       refreshToken
     }
   } catch (err) {
-    console.log("Error refreshing access token.", err)
+    console.log("Error signing in: ", err)
     return {
       success: false,
-      message: err?.message || "Error refreshing access token."
+      statusCode: 500,
+      message: err?.message || "Error signing in."
     }
   }
 }
@@ -140,21 +146,19 @@ const signOut = async (userId) => {
 /**
  * Internal method for generating an access (15 min) and refresh token (30 day).
  */
-const _generateTokens = async (user) => {
+const _generateTokens = async (tokenPayload, userId) => {
   const accessTokenSecretKey = process.env.ACCESS_TOKEN_SECRET_KEY
   const refreshTokenSecretKey = process.env.REFRESH_TOKEN_SECRET_KEY
 
-  const accessTokenPayload = { user }
-  const accessToken = jwt.sign(accessTokenPayload, accessTokenSecretKey, {
+  const accessToken = jwt.sign(tokenPayload, accessTokenSecretKey, {
     expiresIn: "15m"
   })
 
-  const refreshTokenPayload = {}
-  const refreshToken = jwt.sign(refreshTokenPayload, refreshTokenSecretKey, {
+  const refreshToken = jwt.sign(tokenPayload, refreshTokenSecretKey, {
     expiresIn: "30d"
   })
 
-  await User.update({ refreshToken }, { where: { id: user.userId } })
+  await User.update({ refreshToken }, { where: { id: userId } })
 
   return {
     accessToken,
@@ -163,8 +167,8 @@ const _generateTokens = async (user) => {
 }
 
 module.exports = {
-  login,
   register,
   refreshAccessToken,
+  signIn,
   signOut
 }

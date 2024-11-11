@@ -31,11 +31,11 @@ const optIn = async (req, res) => {
 }
 
 const sendText = async (req, res) => {
-  const { userId } = req.user
+  const { id } = req.user
   const { to, body } = req.body
   const from = process.env.TEXTING_PHONE_NUMBER
 
-  const result = await textingService.sendText({ to, from, body, userId })
+  const result = await textingService.sendText({ to, from, body, userId: id })
 
   if (result.success) res.status(201).send(result)
   else res.status(500).send(result)
