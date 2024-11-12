@@ -1,5 +1,12 @@
 const textingService = require("../services/texting.service")
 
+const getPhoneNumber = async (req, res) => {
+  const { id } = req.user
+  const result = await textingService.getPhoneNumber(id)
+  if (result.success) res.status(200).send(result)
+  else res.status(result.statusCode).send(result)
+}
+
 const handleIncomingTextWebhook = async (req, res) => {
   const result = await textingService.handleIncomingTextWebhook(req.body)
 
@@ -42,6 +49,7 @@ const sendText = async (req, res) => {
 }
 
 module.exports = {
+  getPhoneNumber,
   handleIncomingTextWebhook,
   handleOutgoingTextWebhook,
   sendText,

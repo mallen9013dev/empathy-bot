@@ -12,7 +12,7 @@ const verifyToken = (req, res, next) => {
   } catch (err) {
     res.status(401).send({
       success: false,
-      message: err.message || "Invalid auth token."
+      message: err?.message || "Invalid auth token."
     })
   }
 }

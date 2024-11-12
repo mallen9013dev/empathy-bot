@@ -4,6 +4,35 @@ const aiService = require("./ai.service")
 const { PhoneNumber, TextMessage } = require("../database/models/texting.model")
 
 /**
+ * Gets a phone number based on user id.
+ */
+const getPhoneNumber = async (userId) => {
+  try {
+    const phoneNumber = await PhoneNumber.findOne({ where: { userId }, attributes: ["phoneNumber"] })
+
+    if (!phoneNumber)
+      return {
+        success: false,
+        statusCode: 404,
+        message: "Phone number not found."
+      }
+
+    return {
+      success: true,
+      message: "Successfully found phone number",
+      phoneNumber: phoneNumber.phoneNumber
+    }
+  } catch (err) {
+    console.log("Error getting phone number:", err)
+    return {
+      success: false,
+      statusCode: 500,
+      message: err?.message || "Error getting phone number."
+    }
+  }
+}
+
+/**
  * Webhook method that finds or creates ph# record, then sends system keyword reply not opted-in message. System replies are not logged in database.
  * If number is previously opted in, trigger methods to check if auto-reply is warranted based on the app.
  */
@@ -33,7 +62,7 @@ const handleIncomingTextWebhook = async (message) => {
       systemReply
     }
   } catch (err) {
-    console.log("Error receiving text.", err)
+    console.log("Error receiving text:", err)
     return {
       success: false,
       message: err?.message || "Error receiving text."
@@ -227,6 +256,7 @@ const _handleSystemReply = async (keyword, phoneNumber) => {
 }
 
 module.exports = {
+  getPhoneNumber,
   handleIncomingTextWebhook,
   handleOutgoingTextWebhook,
   sendText,
