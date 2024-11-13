@@ -151,7 +151,7 @@ const _generateTokens = async (tokenPayload, userId) => {
   const refreshTokenSecretKey = process.env.REFRESH_TOKEN_SECRET_KEY
 
   const accessToken = jwt.sign(tokenPayload, accessTokenSecretKey, {
-    expiresIn: "15m"
+    expiresIn: "1h"
   })
 
   const refreshToken = jwt.sign(tokenPayload, refreshTokenSecretKey, {

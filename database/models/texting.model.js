@@ -13,6 +13,11 @@ const PhoneNumber = database.define(
     userId: {
       type: DataTypes.STRING
     },
+    active: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      default: false
+    },
     phoneNumber: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -20,7 +25,8 @@ const PhoneNumber = database.define(
     },
     optedIn: {
       type: DataTypes.BOOLEAN,
-      default: 0
+      allowNull: false,
+      default: false
     },
     optDate: {
       type: DataTypes.DATE

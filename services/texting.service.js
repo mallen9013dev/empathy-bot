@@ -4,29 +4,53 @@ const aiService = require("./ai.service")
 const { PhoneNumber, TextMessage } = require("../database/models/texting.model")
 
 /**
- * Gets a phone number based on user id.
+ * Add a new active phone number associated with a user. Deactivates all other numbers.
  */
-const getPhoneNumber = async (userId) => {
+const addPhoneNumber = async (newPhoneNumber, userId) => {
   try {
-    const phoneNumber = await PhoneNumber.findOne({ where: { userId }, attributes: ["phoneNumber"] })
+    await PhoneNumber.update({ active: false }, { where: { userId } })
 
-    if (!phoneNumber)
-      return {
-        success: false,
-        statusCode: 404,
-        message: "Phone number not found."
-      }
+    const [phoneNumber] = await PhoneNumber.upsert({
+      phoneNumber: newPhoneNumber,
+      userId,
+      active: true,
+      optedIn: true,
+      optDate: new Date()
+    })
+
+    if (process.env.MOCK_TEXT_CLIENT !== "true") {
+      await textingClient.sendText(newPhoneNumber, process.env.TEXTING_PHONE_NUMBER, textingConstants.SYSTEM_KEYWORDS.REPLIES.START)
+    }
 
     return {
       success: true,
-      message: "Successfully found phone number",
+      message: "Successfully added phone number",
       phoneNumber: phoneNumber.phoneNumber
+    }
+  } catch (err) {
+    console.log("Error adding phone number:", err)
+    return {
+      success: false,
+      message: err?.message || "Error adding phone number."
+    }
+  }
+}
+
+/**
+ * Gets the users one active phone number based on user id.
+ */
+const getPhoneNumber = async (userId) => {
+  try {
+    const phoneNumber = await PhoneNumber.findOne({ where: { userId, active: true }, attributes: ["phoneNumber"] })
+    return {
+      success: true,
+      message: "Successfully found phone number",
+      phoneNumber: phoneNumber?.phoneNumber
     }
   } catch (err) {
     console.log("Error getting phone number:", err)
     return {
       success: false,
-      statusCode: 500,
       message: err?.message || "Error getting phone number."
     }
   }
@@ -96,18 +120,19 @@ const handleOutgoingTextWebhook = async (message) => {
 }
 
 /**
- * Updates the opt-in flag to true for the provided phone number. Can be used for text opt or web opt.
- * If web opt, a customer id can be provided.
+ * Updates the opt-in flag to true for the provided phone number.
  */
-const optIn = async (phoneNumber, userId) => {
+const optIn = async (phoneNumber) => {
   try {
     await PhoneNumber.findOrCreate({
       where: { phoneNumber },
-      defaults: { phoneNumber, userId }
+      defaults: {
+        optedIn: true,
+        optDate: new Date()
+      }
     })
 
     const payload = {
-      userId,
       optedIn: true,
       optDate: new Date()
     }
@@ -256,10 +281,11 @@ const _handleSystemReply = async (keyword, phoneNumber) => {
 }
 
 module.exports = {
+  addPhoneNumber,
   getPhoneNumber,
   handleIncomingTextWebhook,
   handleOutgoingTextWebhook,
-  sendText,
   optIn,
-  optOut
+  optOut,
+  sendText
 }
